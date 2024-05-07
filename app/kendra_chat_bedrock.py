@@ -1,17 +1,18 @@
-#!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
-# vim: tabstop=2 shiftwidth=2 softtabstop=2 expandtab
+# Copyright 2016 Amazon Web Services, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0 License
+#
+# https://github.com/aws-samples/amazon-kendra-langchain-extensions/blob/main/kendra_retriever_samples/kendra_chat_flan_xl.py
+#
 
 import sys
-import json
 import os
 
-from langchain_community.retrievers import AmazonKendraRetriever
-from langchain_community.llms import SagemakerEndpoint
+import boto3
+
+from langchain_aws import AmazonKendraRetriever
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
-from langchain.llms.sagemaker_endpoint import LLMContentHandler
-
+from langchain_aws import ChatBedrock as BedrockChat
 
 class bcolors:
   HEADER = '\033[95m'
@@ -31,29 +32,24 @@ MAX_HISTORY_LENGTH = 5
 def build_chain():
   region = os.environ["AWS_REGION"]
   kendra_index_id = os.environ["KENDRA_INDEX_ID"]
-  text2text_model_endpoint = os.environ["TEXT2TEXT_ENDPOINT_NAME"]
+  model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-v2:1')
 
-  class ContentHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
+  bedrockruntime_client = boto3.client('bedrock-runtime',
+    region_name=region)
 
-    def transform_input(self, prompt: str, model_kwargs: dict) -> bytes:
-      input_str = json.dumps({"text_inputs": prompt, **model_kwargs})
-      return input_str.encode('utf-8')
+  #XXX: Support for claude v3 models. #18630
+  # https://github.com/langchain-ai/langchain/pull/18630
+  llm = BedrockChat(
+    model_id=model_id,
+    client=bedrockruntime_client,
+    model_kwargs={
+      "max_tokens": 512,
+      "temperature": 0,
+      "top_p": 0.9
+    }
+  )
 
-    def transform_output(self, output: bytes) -> str:
-      response_json = json.loads(output.read().decode("utf-8"))
-      return response_json["generated_texts"][0]
-
-  content_handler = ContentHandler()
-
-  llm = SagemakerEndpoint(
-            endpoint_name=text2text_model_endpoint,
-            region_name=region,
-            model_kwargs={"temperature":1e-10, "max_length": 500},
-            content_handler=content_handler)
-
-  retriever = AmazonKendraRetriever(index_id=kendra_index_id,region_name=region)
+  retriever = AmazonKendraRetriever(index_id=kendra_index_id, region_name=region)
 
   prompt_template = """
   The following is a friendly conversation between a human and an AI.
@@ -83,7 +79,7 @@ def build_chain():
         retriever=retriever,
         condense_question_prompt=standalone_question_prompt,
         return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": PROMPT})
+        combine_docs_chain_kwargs={"prompt":PROMPT})
   return qa
 
 

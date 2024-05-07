@@ -4,4 +4,3 @@ from .kendra_data_source_sync_lambda import KendraDataSourceSyncLambdaStack
 from .kendra_data_source_sync import KendraDataSourceSyncStack
 from .vpc import VpcStack
 from .sm_studio import SageMakerStudioStack
-from .sm_llm_endpoint import LLMEndpointStack

@@ -14,6 +14,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+
 class KendraDataSourceSyncLambdaStack(Stack):
 
   def __init__(self, scope: Construct, construct_id: str, kendra_index_id, kendra_data_source_id, **kwargs) -> None:
@@ -74,6 +75,7 @@ class KendraDataSourceSyncLambdaStack(Stack):
 
     self.kendra_ds_sync_lambda_arn = kendra_data_source_sync_lambda_fn.function_arn
 
-    cdk.CfnOutput(self, 'KendraDSSyncLambdaFnName', value=kendra_data_source_sync_lambda_fn.function_name,
+    cdk.CfnOutput(self, 'KendraDSSyncLambdaFnName',
+      value=kendra_data_source_sync_lambda_fn.function_name,
       export_name=f"{self.stack_name}-KendraDSSyncLambdaFnName")
 

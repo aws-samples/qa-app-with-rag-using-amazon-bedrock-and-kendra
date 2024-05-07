@@ -1,7 +1,7 @@
 
 # RAG Application CDK Python project!
 
-![rag_with_kendra_arch](./rag_with_kendra_arch.svg)
+![rag_with_bedrock_kendra_arch](./rag_with_bedrock_kendra_arch.svg)
 
 This is an QA application with LLMs and RAG project for CDK development with Python.
 
@@ -101,7 +101,6 @@ RAGwithKendraDSSyncLambdaStack
 RAGwithKendraDSSyncStack
 RAGwithKendraVpcStack
 RAGwithKendraSageMakerStudioStack
-RAGwithKendraLLMEndpointStack
 ```
 
 #### Step 2: Create Amazon Kendra
@@ -120,12 +119,6 @@ RAGwithKendraLLMEndpointStack
 
 ```
 (.venv) $ cdk deploy --require-approval never RAGwithKendraVpcStack RAGwithKendraSageMakerStudioStack
-```
-
-#### Step 5: Deploy Text Generation LLM Endpoint
-
-```
-(.venv) $ cdk deploy --require-approval never RAGwithKendraLLMEndpointStack
 ```
 
 > :warning: Launching the Amazon Kendra stacks (i.e., **Step 2, 3**) requires about 30 minutes followed by about 15 minutes to synchronize it and ingest the data in the index. Therefore, wait for about 45 minutes after launching the stacks. Note the index ID on the `RAGwithKendraIndexStack`’s **Outputs** tab.
@@ -187,5 +180,5 @@ Enjoy!
       ```
     * **Solution**: You’ll need to explicitly pin to `urllib3<2` in your project to ensure `urllib3 2.0` isn’t brought into your environment.
       ```
-      urllib3<2
+      urllib3<2.0
       ```

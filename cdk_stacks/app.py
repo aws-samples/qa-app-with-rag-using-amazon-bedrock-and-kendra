@@ -10,8 +10,7 @@ from rag_with_kendra import (
   KendraDataSourceSyncLambdaStack,
   KendraDataSourceSyncStack,
   VpcStack,
-  SageMakerStudioStack,
-  LLMEndpointStack
+  SageMakerStudioStack
 )
 
 import aws_cdk as cdk
@@ -48,10 +47,5 @@ sm_studio_stack = SageMakerStudioStack(app, 'RAGwithKendraSageMakerStudioStack',
   vpc_stack.vpc,
   env=AWS_ENV)
 sm_studio_stack.add_dependency(vpc_stack)
-
-sm_llm_endpoint = LLMEndpointStack(app, 'RAGwithKendraLLMEndpointStack',
-  sm_studio_stack.sm_execution_role_arn,
-  env=AWS_ENV)
-sm_llm_endpoint.add_dependency(sm_studio_stack)
 
 app.synth()

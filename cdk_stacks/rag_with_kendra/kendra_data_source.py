@@ -7,10 +7,10 @@ import aws_cdk as cdk
 from aws_cdk import (
   Stack,
   aws_iam,
-  aws_kendra,
-  aws_s3 as s3
+  aws_kendra
 )
 from constructs import Construct
+
 
 class KendraDataSourceStack(Stack):
 
@@ -64,5 +64,6 @@ class KendraDataSourceStack(Stack):
 
     self.kendra_data_source_id = kendra_data_source.attr_id
 
-    cdk.CfnOutput(self, 'KendraDataSourceId', value=self.kendra_data_source_id,
+    cdk.CfnOutput(self, 'KendraDataSourceId',
+      value=self.kendra_data_source_id,
       export_name=f"{self.stack_name}-KendraDataSourceId")

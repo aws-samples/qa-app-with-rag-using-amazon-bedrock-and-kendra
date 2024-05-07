@@ -2,20 +2,17 @@
 # -*- encoding: utf-8 -*-
 # vim: tabstop=2 shiftwidth=2 softtabstop=2 expandtab
 
-import random
-import string
-
 import aws_cdk as cdk
 
 from aws_cdk import (
   Stack,
   aws_ec2,
   aws_iam,
+  aws_s3 as s3,
   aws_sagemaker
 )
 from constructs import Construct
 
-random.seed(47)
 
 class SageMakerStudioStack(Stack):
 
@@ -146,12 +143,14 @@ class SageMakerStudioStack(Stack):
       "effect": aws_iam.Effect.ALLOW,
       "resources": ["*"],
       "actions": [
-        "bedrock:*"
+        "bedrock:ListFoundationModels",
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
       ]
     }))
 
     sagemaker_execution_role = aws_iam.Role(self, 'SageMakerExecutionRole',
-      role_name='AmazonSageMakerStudioExecutionRole-{suffix}'.format(suffix=''.join(random.choices((string.digits), k=5))),
+      role_name=f'SMStudioExecutionRole-{self.stack_name.lower()}',
       assumed_by=aws_iam.ServicePrincipal('sagemaker.amazonaws.com'),
       path='/',
       inline_policies={
