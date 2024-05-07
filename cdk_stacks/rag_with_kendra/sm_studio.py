@@ -181,7 +181,7 @@ class SageMakerStudioStack(Stack):
     sagemaker_studio_domain = aws_sagemaker.CfnDomain(self, 'SageMakerStudioDomain',
       auth_mode='IAM', # [SSO | IAM]
       default_user_settings=sm_studio_user_settings,
-      domain_name='rag-with-kendra-workshop',
+      domain_name='rag-with-bedrock-kendra-workshop',
       subnet_ids=vpc.select_subnets(subnet_type=aws_ec2.SubnetType.PUBLIC).subnet_ids,
       vpc_id=vpc.vpc_id,
       app_network_access_type='PublicInternetOnly' # [PublicInternetOnly | VpcOnly]
