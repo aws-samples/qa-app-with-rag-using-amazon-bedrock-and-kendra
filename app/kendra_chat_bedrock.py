@@ -10,9 +10,20 @@ import os
 import boto3
 
 from langchain_aws import AmazonKendraRetriever
-from langchain.chains import ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate
 from langchain_aws import ChatBedrock as BedrockChat
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import (
+  create_history_aware_retriever,
+  create_retrieval_chain
+)
+from langchain_core.prompts import (
+  ChatPromptTemplate,
+  MessagesPlaceholder
+)
+from langchain_core.messages import (
+    HumanMessage,
+    AIMessage
+)
 
 class bcolors:
   HEADER = '\033[95m'
@@ -51,40 +62,48 @@ def build_chain():
 
   retriever = AmazonKendraRetriever(index_id=kendra_index_id, region_name=region)
 
-  prompt_template = """
+  contextualize_q_system_prompt = """Given a chat history and the latest user question \
+which might reference context in the chat history, formulate a standalone question \
+which can be understood without the chat history. Do NOT answer the question, \
+just reformulate it if needed and otherwise return it as is."""
+
+  contextualize_q_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", contextualize_q_system_prompt),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ]
+  )
+
+  history_aware_retriever = create_history_aware_retriever(
+    llm, retriever, contextualize_q_prompt
+  )
+
+  qa_system_prompt = """
   The following is a friendly conversation between a human and an AI.
   The AI is talkative and provides lots of specific details from its context.
   If the AI does not know the answer to a question, it truthfully says it
   does not know.
   {context}
-  Instruction: Based on the above documents, provide a detailed answer for, {question} Answer "don't know"
+  Instruction: Based on the above documents, provide a detailed answer for, {input} Answer "don't know"
   if not present in the document.
   Solution:"""
-  PROMPT = PromptTemplate(
-    template=prompt_template, input_variables=["context", "question"]
+
+  qa_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", qa_system_prompt),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ]
   )
 
-  condense_qa_template = """
-  Given the following conversation and a follow up question, rephrase the follow up question
-  to be a standalone question.
+  question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
-  Chat History:
-  {chat_history}
-  Follow Up Input: {question}
-  Standalone question:"""
-  standalone_question_prompt = PromptTemplate.from_template(condense_qa_template)
-
-  qa = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        condense_question_prompt=standalone_question_prompt,
-        return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt":PROMPT})
-  return qa
-
+  rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+  return rag_chain
 
 def run_chain(chain, prompt: str, history=[]):
-  return chain({"question": prompt, "chat_history": history})
+  return chain.invoke({"input": prompt, "chat_history": history})
 
 
 if __name__ == "__main__":
@@ -100,11 +119,16 @@ if __name__ == "__main__":
     elif (len(chat_history) == MAX_HISTORY_LENGTH):
       chat_history.pop(0)
     result = run_chain(qa, query, chat_history)
-    chat_history.append((query, result["answer"]))
+    #XXX: Be sure to preserve message formats when using the Anthropic Claude Messages API.
+    # Otherwise, you will enconter the following error,
+    #   ValueError: Error raised by bedrock service: An error occurred (ValidationException) when calling the InvokeModel operation:
+    #   messages: roles must alternate between "user" and "assistant", but found multiple "user" roles in a row
+    # For more information, see https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html
+    chat_history.extend([HumanMessage(content=query), AIMessage(content=result["answer"])])
     print(bcolors.OKGREEN + result['answer'] + bcolors.ENDC)
-    if 'source_documents' in result:
-      print(bcolors.OKGREEN + 'Sources:')
-      for d in result['source_documents']:
+    if 'context' in result:
+      print(bcolors.OKGREEN + '\nSources:')
+      for d in result['context']:
         print(d.metadata['source'])
     print(bcolors.ENDC)
     print(bcolors.OKCYAN + "Ask a question, start a New search: or CTRL-D to exit." + bcolors.ENDC)

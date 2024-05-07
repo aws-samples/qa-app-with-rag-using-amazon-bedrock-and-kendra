@@ -6,7 +6,12 @@ import os
 import streamlit as st
 import uuid
 
-import kendra_chat_bedrock as bedrock
+from langchain_core.messages import (
+  HumanMessage,
+  AIMessage
+)
+
+import kendra_chat_bedrock as llm_app
 
 
 BEDROCK_MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-v2:1')
@@ -30,8 +35,8 @@ else:
 
 
 if 'llm_chain' not in st.session_state:
-  st.session_state['llm_app'] = bedrock
-  st.session_state['llm_chain'] = bedrock.build_chain()
+  st.session_state['llm_app'] = llm_app
+  st.session_state['llm_chain'] = llm_app.build_chain()
 
 if 'chat_history' not in st.session_state:
   st.session_state['chat_history'] = []
@@ -123,11 +128,11 @@ def handle_input():
   chain = st.session_state['llm_app']
   result = chain.run_chain(llm_chain, input, chat_history)
   answer = result['answer']
-  chat_history.append((input, answer))
+  chat_history.extend([HumanMessage(content=input), AIMessage(content=answer)])
 
   document_list = []
-  if 'source_documents' in result:
-    for d in result['source_documents']:
+  if 'context' in result:
+    for d in result['context']:
       if not (d.metadata['source'] in document_list):
         document_list.append((d.metadata['source']))
 
