@@ -11,6 +11,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+
 class VpcStack(Stack):
 
   def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -24,7 +25,7 @@ class VpcStack(Stack):
     # cdk -c vpc_name=your-existing-vpc syth
     #
     if str(os.environ.get('USE_DEFAULT_VPC', 'false')).lower() == 'true':
-      vpc_name = self.node.try_get_context('vpc_name') or 'default'
+      vpc_name = self.node.try_get_context('vpc_name') or "default"
       self.vpc = aws_ec2.Vpc.from_lookup(self, 'ExistingVPC',
         is_default=True,
         vpc_name=vpc_name
